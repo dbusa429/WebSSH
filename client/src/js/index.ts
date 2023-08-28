@@ -21,10 +21,8 @@ require('xterm/css/xterm.css');
 require('../css/style.css');
 
 /* global Blob, logBtn, credentialsBtn, reauthBtn, downloadLogBtn */ // eslint-disable-line
-let sessionLogEnable = false;
-let loggedData = false;
-let allowreplay = false;
-let allowreauth = false;
+let sessionLogEnable = true;
+let loggedData = true;
 let sessionLog: string;
 let sessionFooter: any;
 let logDate: {
@@ -52,6 +50,20 @@ term.loadAddon(fitAddon);
 term.open(terminalContainer);
 term.focus();
 fitAddon.fit();
+
+if(sessionFooter) {
+  currentDate = new Date();
+  sessionLog = `Log Start for ${sessionFooter}: ${currentDate.getFullYear()}/${
+    currentDate.getMonth() + 1
+  }/${currentDate.getDate()} @ ${currentDate.getHours()}:${currentDate.getMinutes()}:${currentDate.getSeconds()}\r\n\r\n`;
+  logDate = currentDate;
+
+  if (loggedData) {
+    downloadLogBtn.style.color = '#000';
+    downloadLogBtn.addEventListener('click', downloadLog);
+    downloadLogBtn.style.display = 'block';
+  }
+}
 
 const socket = io({
   path: '/ssh/socket.io',
@@ -91,15 +103,16 @@ function downloadLog () { // eslint-disable-line
   }
   term.focus();
 }
+
 // Set variable to toggle log data from client/server to a varialble
 // for later download
-function toggleLog () { // eslint-disable-line
+function toggleLog() { // eslint-disable-line
   if (sessionLogEnable === true) {
     sessionLogEnable = false;
     loggedData = true;
     logBtn.innerHTML = '<i class="fas fa-clipboard fa-fw"></i> Start Log';
     // console.log(`stopping log, ${sessionLogEnable}`);
-    currentDate = new Date();
+    
     sessionLog = `${sessionLog}\r\n\r\nLog End for ${sessionFooter}: ${currentDate.getFullYear()}/${
       currentDate.getMonth() + 1
     }/${currentDate.getDate()} @ ${currentDate.getHours()}:${currentDate.getMinutes()}:${currentDate.getSeconds()}\r\n`;
@@ -110,8 +123,6 @@ function toggleLog () { // eslint-disable-line
   sessionLogEnable = true;
   loggedData = true;
   logBtn.innerHTML = '<i class="fas fa-cog fa-spin fa-fw"></i> Stop Log';
-  downloadLogBtn.style.color = '#000';
-  downloadLogBtn.addEventListener('click', downloadLog);
   // console.log(`starting log, ${sessionLogEnable}`);
   currentDate = new Date();
   sessionLog = `Log Start for ${sessionFooter}: ${currentDate.getFullYear()}/${
@@ -121,15 +132,6 @@ function toggleLog () { // eslint-disable-line
   term.focus();
   return false;
 }
-
-// replay password to server, requires
-function replayCredentials () { // eslint-disable-line
-  socket.emit('control', 'replayCredentials');
-  // console.log('replaying credentials');
-  term.focus();
-  return false;
-}
-
 
 function resizeScreen() {
   fitAddon.fit();
@@ -148,7 +150,9 @@ socket.on('data', (data: string | Uint8Array) => {
     sessionLog += data;
   }
 });
-
+socket.on('downloadLog', () => {
+  downloadLog();
+});
 socket.on('connect', () => {
   socket.emit('geometry', term.cols, term.rows);
 });
@@ -166,7 +170,6 @@ socket.on(
 socket.on('title', (data: string) => {
   document.title = data;
 });
-
 
 socket.on('status', (data: string) => {
   status.innerHTML = data;
@@ -216,12 +219,6 @@ socket.on('error', (err: any) => {
   if (!errorExists) {
     status.style.backgroundColor = 'red';
     status.innerHTML = `ERROR: ${err}`;
-  }
-});
-
-socket.on('reauth', () => {
-  if (allowreauth) {
-    reauthSession();
   }
 });
 
