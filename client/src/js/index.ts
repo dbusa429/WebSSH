@@ -21,8 +21,8 @@ require('xterm/css/xterm.css');
 require('../css/style.css');
 
 /* global Blob, logBtn, credentialsBtn, reauthBtn, downloadLogBtn */ // eslint-disable-line
-let sessionLogEnable = true;
-let loggedData = true;
+let sessionLogEnable = false;
+let loggedData = false;
 let sessionLog: string;
 let sessionFooter: any;
 let logDate: {
